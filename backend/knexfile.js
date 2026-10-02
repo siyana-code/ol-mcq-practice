@@ -1,31 +1,28 @@
 require('dotenv').config();
 
+const connectionString = process.env.DATABASE_URL;
+
+const baseConfig = {
+  client: 'pg',
+  migrations: { directory: './migrations' },
+  seeds: { directory: './seeds' },
+};
+
 module.exports = {
   development: {
-    client: 'pg',
-    connection: {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    },
-    migrations: {
-      directory: './migrations',
-    },
-    seeds: {
-      directory: './seeds',
+    ...baseConfig,
+    connection: connectionString || {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT) || 5432,
+      database: process.env.DB_NAME || 'ol_mcq_db',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
     },
   },
 
   production: {
-    client: 'pg',
-    connection: process.env.DATABASE_URL,
-    migrations: {
-      directory: './migrations',
-    },
-    seeds: {
-      directory: './seeds',
-    },
+    ...baseConfig,
+    connection: connectionString,
+    pool: { min: 2, max: 10 },
   },
 };
