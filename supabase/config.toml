@@ -1,0 +1,18 @@
+# Supabase configuration
+# Run: supabase db push
+
+[project]
+id = "ol-mcq-practice"
+
+[db]
+port = 5432
+shadow_port = 5433
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = false
+enable_confirmations = false
