@@ -6,6 +6,7 @@ const baseConfig = {
   client: 'pg',
   migrations: { directory: './migrations' },
   seeds: { directory: './seeds' },
+  pool: { min: 0, max: 5 },
 };
 
 module.exports = {
@@ -22,7 +23,9 @@ module.exports = {
 
   production: {
     ...baseConfig,
-    connection: connectionString,
-    pool: { min: 2, max: 10 },
+    connection: connectionString ? {
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    } : undefined,
   },
 };
