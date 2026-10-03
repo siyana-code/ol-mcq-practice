@@ -29,11 +29,67 @@ const options = {
           type: 'object',
           properties: {
             id: { type: 'string', format: 'uuid' },
-            name_si: { type: 'string', example: 'ගණිතය' },
-            name_en: { type: 'string', example: 'Mathematics' },
-            icon: { type: 'string', example: 'calculator' },
+            name_si: { type: 'string', example: 'විද්‍යාව' },
+            name_en: { type: 'string', example: 'Science' },
+            icon: { type: 'string', example: 'flask' },
             sort_order: { type: 'integer' },
-            created_at: { type: 'string', format: 'date-time' },
+            category: {
+              type: 'string',
+              enum: ['mandatory', 'basket1', 'basket2', 'basket3'],
+              description: 'Exam slot. One pick per basket is required from each candidate.',
+            },
+            is_mcq: {
+              type: 'boolean',
+              description:
+                'False when the subject has no drillable MCQ Paper I (practical or essay based).',
+              example: true,
+            },
+            topics: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/Topic' },
+              description: 'Present on /api/profile/my-subjects.',
+            },
+          },
+        },
+        MotherLanguage: {
+          type: 'string',
+          enum: ['sinhala', 'tamil'],
+          example: 'sinhala',
+        },
+        Religion: {
+          type: 'string',
+          enum: ['buddhism', 'christianity', 'islam', 'shaivism'],
+          example: 'buddhism',
+        },
+        SubjectSelection: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name_si: { type: 'string' },
+            name_en: { type: 'string' },
+            icon: { type: 'string' },
+            is_mcq: { type: 'boolean' },
+          },
+        },
+        Profile: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            name: { type: 'string' },
+            mother_language: { $ref: '#/components/schemas/MotherLanguage' },
+            religion: { $ref: '#/components/schemas/Religion' },
+            onboarded_at: { type: 'string', format: 'date-time', nullable: true },
+            onboarded: { type: 'boolean' },
+            complete: { type: 'boolean' },
+            selections: {
+              type: 'object',
+              properties: {
+                basket1: { $ref: '#/components/schemas/SubjectSelection' },
+                basket2: { $ref: '#/components/schemas/SubjectSelection' },
+                basket3: { $ref: '#/components/schemas/SubjectSelection' },
+              },
+            },
           },
         },
         Topic: {

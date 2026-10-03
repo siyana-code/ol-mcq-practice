@@ -5,11 +5,18 @@ const db = require('../db');
 
 const router = express.Router();
 
+const MOTHER_LANGUAGES = ['sinhala', 'tamil'];
+const RELIGIONS = ['buddhism', 'christianity', 'islam', 'shaivism'];
+
 /**
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register a new user
+ *     summary: Register a new student
+ *     description: >
+ *       Creates an account. `mother_language` and `religion` are optional at
+ *       signup and can be completed later via PATCH /api/profile. A user who
+ *       has not picked their basket subjects is considered not onboarded.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -19,18 +26,36 @@ const router = express.Router();
  *             type: object
  *             required: [email, name, password]
  *             properties:
- *               email: { type: 'string', format: 'email' }
- *               name: { type: 'string' }
- *               password: { type: 'string', minLength: 6 }
+ *               email: { type: string, format: email }
+ *               name: { type: string }
+ *               password: { type: string, minLength: 6 }
+ *               mother_language:
+ *                 type: string
+ *                 enum: [sinhala, tamil]
+ *               religion:
+ *                 type: string
+ *                 enum: [buddhism, christianity, islam, shaivism]
  *     responses:
  *       201:
- *         description: User registered
+ *         description: Account created
  *       409:
  *         description: Email already registered
+ *       400:
+ *         description: Invalid mother_language or religion
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, name, password } = req.body;
+    const { email, name, password, mother_language, religion } = req.body;
+
+    if (password && String(password).length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    if (mother_language && !MOTHER_LANGUAGES.includes(mother_language)) {
+      return res.status(400).json({ error: 'Invalid mother_language' });
+    }
+    if (religion && !RELIGIONS.includes(religion)) {
+      return res.status(400).json({ error: 'Invalid religion' });
+    }
 
     const existing = await db('users').where({ email }).first();
     if (existing) {
@@ -38,9 +63,13 @@ router.post('/register', async (req, res) => {
     }
 
     const password_hash = await bcrypt.hash(password, 10);
-    const [user] = await db('users').insert({ email, name, password_hash }).returning(['id', 'email', 'name']);
+    const [user] = await db('users')
+      .insert({ email, name, password_hash, mother_language, religion })
+      .returning(['id', 'email', 'name', 'mother_language', 'religion']);
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN,
+    });
 
     res.status(201).json({ user, token });
   } catch (err) {
@@ -52,7 +81,7 @@ router.post('/register', async (req, res) => {
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Login user
+ *     summary: Log in with email and password
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -62,13 +91,11 @@ router.post('/register', async (req, res) => {
  *             type: object
  *             required: [email, password]
  *             properties:
- *               email: { type: 'string', format: 'email' }
- *               password: { type: 'string' }
+ *               email: { type: string, format: email }
+ *               password: { type: string }
  *     responses:
- *       200:
- *         description: Login successful
- *       401:
- *         description: Invalid credentials
+ *       200: { description: Logged in }
+ *       401: { description: Invalid credentials }
  */
 router.post('/login', async (req, res) => {
   try {
@@ -84,9 +111,21 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN,
+    });
 
-    res.json({ user: { id: user.id, email: user.email, name: user.name }, token });
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        mother_language: user.mother_language,
+        religion: user.religion,
+        onboarded_at: user.onboarded_at,
+      },
+      token,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -96,15 +135,13 @@ router.post('/login', async (req, res) => {
  * @swagger
  * /api/auth/me:
  *   get:
- *     summary: Get current user
+ *     summary: Get the current user
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     responses:
- *       200:
- *         description: Current user info
- *       401:
- *         description: Unauthorized
+ *       200: { description: Current user }
+ *       401: { description: Unauthorized }
  */
 router.get('/me', async (req, res) => {
   try {
@@ -114,7 +151,15 @@ router.get('/me', async (req, res) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await db('users').where({ id: decoded.id }).first(['id', 'email', 'name', 'avatar_url']);
+    const user = await db('users').where({ id: decoded.id }).first([
+      'id',
+      'email',
+      'name',
+      'avatar_url',
+      'mother_language',
+      'religion',
+      'onboarded_at',
+    ]);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json(user);

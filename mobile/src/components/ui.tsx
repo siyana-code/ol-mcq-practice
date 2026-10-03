@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ViewStyle, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, type, space, radius, elevation } from '../theme';
@@ -188,6 +188,107 @@ export function StateScreen({
 }
 
 /* ------------------------------------------------------------------ */
+/* Text field                                                           */
+/* ------------------------------------------------------------------ */
+
+interface FieldProps {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+  secureTextEntry?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'numeric';
+  autoCapitalize?: 'none' | 'sentences' | 'words';
+  error?: string | null;
+  editable?: boolean;
+}
+
+export function Field({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry,
+  keyboardType = 'default',
+  autoCapitalize = 'sentences',
+  error,
+  editable = true,
+}: FieldProps) {
+  const [focused, setFocused] = React.useState(false);
+  const borderColor = error
+    ? colors.error
+    : focused
+      ? colors.primary
+      : colors.outlineVariant;
+
+  return (
+    <View style={s.field}>
+      <Text style={s.fieldLabel}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.outline}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={false}
+        editable={editable}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[s.input, { borderColor, borderWidth: focused || error ? 2 : 1 }]}
+      />
+      {error ? <Text style={s.fieldError}>{error}</Text> : null}
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Selectable row (radio-in-card)                                      */
+/* ------------------------------------------------------------------ */
+
+interface OptionRowProps {
+  label: string;
+  caption?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  selected: boolean;
+  onPress: () => void;
+}
+
+export function OptionRow({ label, caption, icon, selected, onPress }: OptionRowProps) {
+  return (
+    <Card
+      onPress={onPress}
+      background={selected ? colors.selectedTint : colors.surface}
+      borderColor={selected ? colors.selectedBorder : colors.outlineVariant}
+      borderWidth={selected ? 2 : 1}
+      style={s.optionRow}
+    >
+      <View style={s.optionRowInner}>
+        {icon ? (
+          <View style={[s.optionIcon, selected && s.optionIconSelected]}>
+            <Ionicons
+              name={icon}
+              size={20}
+              color={selected ? colors.onPrimary : colors.onSurfaceVariant}
+            />
+          </View>
+        ) : null}
+        <View style={s.optionLabels}>
+          <Text style={s.optionLabel}>{label}</Text>
+          {caption ? <Text style={s.optionCaption}>{caption}</Text> : null}
+        </View>
+        <Ionicons
+          name={selected ? 'radio-button-on' : 'radio-button-off'}
+          size={22}
+          color={selected ? colors.primary : colors.outline}
+        />
+      </View>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Screen wrapper                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -259,6 +360,61 @@ const s = StyleSheet.create({
   sectionLabel: {
     color: colors.onSurfaceVariant,
     ...type.titleSmall,
+  },
+
+  field: {
+    marginBottom: space.lg,
+  },
+  fieldLabel: {
+    color: colors.onSurfaceVariant,
+    marginBottom: space.xs,
+    ...type.titleSmall,
+  },
+  input: {
+    height: 52,
+    borderRadius: radius.sm,
+    paddingHorizontal: space.lg,
+    color: colors.onSurface,
+    backgroundColor: colors.surface,
+    ...type.bodyLarge,
+  },
+  fieldError: {
+    color: colors.error,
+    marginTop: space.xs,
+    ...type.bodySmall,
+  },
+
+  optionRow: {
+    marginBottom: space.sm,
+  },
+  optionRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: space.lg,
+    gap: space.md,
+  },
+  optionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceContainer,
+  },
+  optionIconSelected: {
+    backgroundColor: colors.primary,
+  },
+  optionLabels: {
+    flex: 1,
+  },
+  optionLabel: {
+    color: colors.onSurface,
+    ...type.bodyLarge,
+  },
+  optionCaption: {
+    color: colors.onSurfaceVariant,
+    marginTop: 2,
+    ...type.bodySmall,
   },
 
   state: {
