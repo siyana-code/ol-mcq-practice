@@ -6,60 +6,86 @@ import apiClient from '../api/client';
 import { Subject } from '../types';
 import { colors, type, space, radius, subjectIcons } from '../theme';
 import type { HomeScreenProps } from '../navigation';
-import { Screen, Card, StateScreen } from '../components/ui';
+import { Screen, AppBar, Card, StateScreen } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
+  const { profile, signOut } = useAuth();
+
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSubjects = useCallback(async () => {
+  const fetchSubjects = async () => {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await apiClient.get<Subject[]>('/subjects');
+      const { data } = await apiClient.get<Subject[]>('/profile/my-subjects');
       setSubjects(data);
     } catch (err: any) {
       setError(err?.message ?? 'Failed to load subjects');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchSubjects();
-  }, [fetchSubjects]);
+  }, []);
 
-  const renderSubject = ({ item }: { item: Subject }) => (
-    <Card
-      onPress={() =>
-        navigation.navigate('Topics', {
-          subjectId: item.id,
-          subjectName: item.name_si,
-        })
-      }
-      style={s.card}
-    >
-      <View style={s.row}>
-        <View style={s.iconWell}>
-          <Ionicons
-            name={subjectIcons[item.icon] ?? 'book'}
-            size={24}
-            color={colors.primary}
-          />
+  const renderSubject = ({ item }: { item: Subject }) => {
+    const drillable = item.is_mcq && (item.topics?.length ?? 0) > 0;
+
+    return (
+      <Card
+        onPress={
+          drillable
+            ? () =>
+                navigation.navigate('Topics', {
+                  subjectId: item.id,
+                  subjectName: item.name_si,
+                })
+            : undefined
+        }
+        style={s.card}
+      >
+        <View style={s.row}>
+          <View style={s.iconWell}>
+            <Ionicons
+              name={subjectIcons[item.icon ?? ''] ?? 'book-outline'}
+              size={24}
+              color={colors.primary}
+            />
+          </View>
+
+          <View style={s.rowText}>
+            <Text style={s.title} numberOfLines={1}>
+              {item.name_si}
+            </Text>
+            <Text style={s.subtitle} numberOfLines={1}>
+              {item.name_en}
+            </Text>
+            {item.category !== 'mandatory' ? (
+              <View style={s.tag}>
+                <Text style={s.tagText}>
+                  {item.category === 'basket1' ? 'Basket 1' : `Basket ${item.category.slice(-1)}`}
+                </Text>
+              </View>
+            ) : null}
+            {!drillable ? (
+              <Text style={s.note}>
+                {item.is_mcq ? 'No questions yet' : 'No MCQ paper'}
+              </Text>
+            ) : null}
+          </View>
+
+          {drillable ? (
+            <Ionicons name="chevron-forward" size={20} color={colors.outline} />
+          ) : null}
         </View>
-        <View style={s.rowText}>
-          <Text style={s.title} numberOfLines={1}>
-            {item.name_si}
-          </Text>
-          <Text style={s.subtitle} numberOfLines={1}>
-            {item.name_en}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.outline} />
-      </View>
-    </Card>
-  );
+      </Card>
+    );
+  };
 
   if (loading) {
     return (
@@ -74,9 +100,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   if (error) {
     return (
       <Screen>
+        <AppBar title="OL MCQ Practice" onBack={signOut} />
         <StateScreen
           icon="cloud-offline-outline"
-          title="Couldn't load subjects"
+          title="Couldn't load your subjects"
           body={error}
           actionLabel="Try again"
           onAction={fetchSubjects}
@@ -88,16 +115,36 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <Screen>
-      <View style={s.header}>
-        <Text style={s.headerTitle}>OL MCQ Practice</Text>
-        <Text style={s.headerSubtitle}>සාමාන්‍ය පෙළ විභාග පුරුදු</Text>
-      </View>
+      <AppBar
+        title={profile?.name ?? 'OL MCQ Practice'}
+        trailing={
+          <View style={s.headerActions}>
+            <Ionicons
+              name="options-outline"
+              size={24}
+              color={colors.onSurfaceVariant}
+              onPress={() => navigation.navigate('Profile', { blocking: false })}
+            />
+            <Ionicons
+              name="log-out-outline"
+              size={24}
+              color={colors.onSurfaceVariant}
+              onPress={signOut}
+            />
+          </View>
+        }
+      />
 
       <FlatList
         data={subjects}
         renderItem={renderSubject}
         keyExtractor={(item) => item.id}
         contentContainerStyle={s.list}
+        ListHeaderComponent={
+          <Text style={s.greeting}>
+            Your exam subjects{profile?.mother_language ? ` — ${profile.mother_language}` : ''}
+          </Text>
+        }
         ListEmptyComponent={
           <StateScreen
             icon="file-tray-outline"
@@ -111,27 +158,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 }
 
 const s = StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
 
-  header: {
-    paddingHorizontal: space.xl,
-    paddingTop: space.xl,
-    paddingBottom: space.lg,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surfaceContainerHigh,
-  },
-  headerTitle: {
-    color: colors.onSurface,
-    ...type.headlineMedium,
-  },
-  headerSubtitle: {
+  greeting: {
     color: colors.onSurfaceVariant,
-    marginTop: space.xs,
+    marginBottom: space.lg,
     ...type.bodyMedium,
   },
 
@@ -166,6 +198,24 @@ const s = StyleSheet.create({
   subtitle: {
     color: colors.onSurfaceVariant,
     marginTop: 2,
+    ...type.bodySmall,
+  },
+  tag: {
+    alignSelf: 'flex-start',
+    marginTop: space.sm,
+    paddingHorizontal: space.sm,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+    backgroundColor: colors.secondaryContainer,
+  },
+  tagText: {
+    color: colors.onSecondaryContainer,
+    ...type.labelLarge,
+    fontSize: 11,
+  },
+  note: {
+    color: colors.outline,
+    marginTop: space.xs,
     ...type.bodySmall,
   },
 });

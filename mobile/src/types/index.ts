@@ -1,12 +1,7 @@
-export interface Subject {
-  id: string;
-  name_si: string;
-  name_en: string;
-  icon: string;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-}
+export type MotherLanguage = 'sinhala' | 'tamil';
+export type Religion = 'buddhism' | 'christianity' | 'islam' | 'shaivism';
+export type SubjectCategory = 'mandatory' | 'basket1' | 'basket2' | 'basket3';
+export type BasketKey = 'basket1' | 'basket2' | 'basket3';
 
 export interface Topic {
   id: string;
@@ -18,23 +13,68 @@ export interface Topic {
   updated_at: string;
 }
 
+export interface Subject {
+  id: string;
+  name_si: string;
+  name_en: string;
+  icon: string | null;
+  sort_order: number;
+  category: SubjectCategory;
+  is_mcq: boolean;
+  /** Only present on /api/profile/my-subjects. */
+  topics?: Topic[];
+  /** Only present on the user's chosen basket subjects. */
+  basket?: number;
+}
+
+export interface SubjectSelection {
+  id: string;
+  name_si: string;
+  name_en: string;
+  icon: string | null;
+  is_mcq: boolean;
+}
+
+export interface Profile {
+  id: string;
+  email: string;
+  name: string;
+  mother_language: MotherLanguage | null;
+  religion: Religion | null;
+  onboarded_at: string | null;
+  onboarded: boolean;
+  complete: boolean;
+  selections: Record<BasketKey, SubjectSelection | null>;
+}
+
+export interface AuthResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    mother_language?: MotherLanguage | null;
+    religion?: Religion | null;
+  };
+  token: string;
+}
+
+export interface QuestionOption {
+  text_si: string;
+  text_en: string;
+}
+
 export interface Question {
   id: string;
   topic_id: string;
   paper_id: string | null;
   question_text_si: string;
   question_text_en: string;
-  options: {
-    text_si: string;
-    text_en: string;
-  }[];
+  options: QuestionOption[];
   correct_answer: number;
   explanation_si: string | null;
   explanation_en: string | null;
   difficulty: 'easy' | 'medium' | 'hard';
   image_url: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface PastPaper {
@@ -45,33 +85,4 @@ export interface PastPaper {
   title_si: string | null;
   title_en: string | null;
   pdf_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  avatar_url: string | null;
-}
-
-export interface UserProgress {
-  id: string;
-  user_id: string;
-  question_id: string;
-  selected_answer: number;
-  is_correct: boolean;
-  time_taken: number | null;
-  answered_at: string;
-}
-
-export interface UserStats {
-  id: string;
-  user_id: string;
-  subject_id: string;
-  total_answered: number;
-  correct_count: number;
-  streak: number;
-  last_active: string | null;
 }
