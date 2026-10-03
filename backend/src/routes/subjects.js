@@ -46,7 +46,10 @@ router.get('/', async (req, res) => {
  * @swagger
  * /api/subjects/{id}:
  *   get:
- *     summary: Get subject with topics
+ *     summary: Get a subject with its topics and question counts
+ *     description: >
+ *       Each topic carries a `question_count` so clients can tell a drillable
+ *       topic from an empty one without fetching every question.
  *     tags: [Subjects]
  *     parameters:
  *       - in: path
@@ -68,7 +71,14 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Subject not found' });
     }
 
-    const topics = await db('topics').where({ subject_id: req.params.id }).orderBy('sort_order', 'asc');
+    const topics = await db('topics')
+      .where({ subject_id: req.params.id })
+      .leftJoin('questions', 'questions.topic_id', 'topics.id')
+      .groupBy('topics.id')
+      .orderBy('topics.sort_order', 'asc')
+      .select('topics.*')
+      .count({ question_count: 'questions.id' });
+
     res.json({ ...subject, topics });
   } catch (err) {
     res.status(500).json({ error: err.message });

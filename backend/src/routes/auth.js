@@ -2,11 +2,17 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const config = require('../config');
 
 const router = express.Router();
 
 const MOTHER_LANGUAGES = ['sinhala', 'tamil'];
 const RELIGIONS = ['buddhism', 'christianity', 'islam', 'shaivism'];
+
+const signToken = (user) =>
+  jwt.sign({ id: user.id, email: user.email }, config.jwt.secret, {
+    expiresIn: config.jwt.expiresIn,
+  });
 
 /**
  * @swagger
@@ -67,9 +73,7 @@ router.post('/register', async (req, res) => {
       .insert({ email, name, password_hash, mother_language, religion })
       .returning(['id', 'email', 'name', 'mother_language', 'religion']);
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    });
+    const token = signToken(user);
 
     res.status(201).json({ user, token });
   } catch (err) {
@@ -111,9 +115,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    });
+    const token = signToken(user);
 
     res.json({
       user: {
@@ -149,7 +151,7 @@ router.get('/me', async (req, res) => {
     if (!authHeader) return res.status(401).json({ error: 'No token' });
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
 
     const user = await db('users').where({ id: decoded.id }).first([
       'id',

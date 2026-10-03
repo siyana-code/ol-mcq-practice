@@ -66,7 +66,8 @@ export default function PracticeScreen({ navigation, route }: PracticeScreenProp
       setError(null);
       const { data } = await apiClient.get<Question[]>(
         '/questions',
-        { params: { topic_id: topicId, limit: 20 } },
+        // A full Paper I is 40 MCQs; topics get populated to that size.
+        { params: { topic_id: topicId, limit: 40 } },
       );
       setQuestions(data);
     } catch (err: any) {
@@ -137,9 +138,9 @@ export default function PracticeScreen({ navigation, route }: PracticeScreenProp
         <AppBar title={topicName} onBack={() => navigation.goBack()} />
         <StateScreen
           icon="document-text-outline"
-          title="No questions yet"
-          body="This topic doesn't have any questions available right now."
-          actionLabel="Go back"
+          title="ප්‍රශ්න ඉක්මන්ට එයි"
+          body="This topic has no questions yet. Past paper questions are being added — try another topic in the meantime."
+          actionLabel="Choose another topic"
           onAction={() => navigation.goBack()}
         />
       </Screen>

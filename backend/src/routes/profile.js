@@ -238,13 +238,25 @@ router.get('/my-subjects', authRequired, async (req, res) => {
     const subjectIds = [...mandatory, ...picks].map((s) => s.id);
 
     const topics = subjectIds.length
-      ? await db('topics').whereIn('subject_id', subjectIds).orderBy('sort_order', 'asc')
+      ? await db('topics')
+          .whereIn('subject_id', subjectIds)
+          .leftJoin('questions', 'questions.topic_id', 'topics.id')
+          .groupBy('topics.id')
+          .orderBy('topics.sort_order', 'asc')
+          .select('topics.*')
+          .count({ question_count: 'questions.id' })
       : [];
 
-    const withTopics = [...mandatory, ...picks].map((subject) => ({
-      ...subject,
-      topics: topics.filter((t) => t.subject_id === subject.id),
-    }));
+    const withTopics = [...mandatory, ...picks].map((subject) => {
+      const own = topics.filter((t) => t.subject_id === subject.id);
+      return {
+        ...subject,
+        topics: own,
+        // Convenience rollup so clients can gate on "practisable" without
+        // walking the topic list themselves.
+        question_count: own.reduce((sum, t) => sum + Number(t.question_count ?? 0), 0),
+      };
+    });
 
     res.json(withTopics);
   } catch (err) {
