@@ -1,173 +1,171 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+
 import apiClient from '../api/client';
 import { Subject } from '../types';
+import { colors, type, space, radius, subjectIcons } from '../theme';
+import type { HomeScreenProps } from '../navigation';
+import { Screen, Card, StateScreen } from '../components/ui';
 
-const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  calculator: 'calculator',
-  flask: 'flask',
-  book: 'book',
-};
-
-export default function HomeScreen() {
-  const navigation = useNavigation<any>();
+export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
-
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/subjects');
-      setSubjects(response.data);
+      setError(null);
+      const { data } = await apiClient.get<Subject[]>('/subjects');
+      setSubjects(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to load subjects');
+      setError(err?.message ?? 'Failed to load subjects');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSubjects();
+  }, [fetchSubjects]);
 
   const renderSubject = ({ item }: { item: Subject }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('Topics', { subjectId: item.id, subjectName: item.name_si })}
+    <Card
+      onPress={() =>
+        navigation.navigate('Topics', {
+          subjectId: item.id,
+          subjectName: item.name_si,
+        })
+      }
+      style={s.card}
     >
-      <View style={styles.iconContainer}>
-        <Ionicons name={ICONS[item.icon] || 'book'} size={28} color="#4A90D9" />
+      <View style={s.row}>
+        <View style={s.iconWell}>
+          <Ionicons
+            name={subjectIcons[item.icon] ?? 'book'}
+            size={24}
+            color={colors.primary}
+          />
+        </View>
+        <View style={s.rowText}>
+          <Text style={s.title} numberOfLines={1}>
+            {item.name_si}
+          </Text>
+          <Text style={s.subtitle} numberOfLines={1}>
+            {item.name_en}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.outline} />
       </View>
-      <View style={styles.cardContent}>
-        <Text style={styles.title}>{item.name_si}</Text>
-        <Text style={styles.subtitle}>{item.name_en}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
-    </TouchableOpacity>
+    </Card>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#4A90D9" />
-      </SafeAreaView>
+      <Screen>
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </Screen>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.error}>{error}</Text>
-        <TouchableOpacity onPress={fetchSubjects} style={styles.retryButton}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <Screen>
+        <StateScreen
+          icon="cloud-offline-outline"
+          title="Couldn't load subjects"
+          body={error}
+          actionLabel="Try again"
+          onAction={fetchSubjects}
+          tone="error"
+        />
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>OL MCQ Practice</Text>
-        <Text style={styles.headerSubtitle}>සාමාන්‍ය පෙළ විභාග පුරුදු</Text>
+    <Screen>
+      <View style={s.header}>
+        <Text style={s.headerTitle}>OL MCQ Practice</Text>
+        <Text style={s.headerSubtitle}>සාමාන්‍ය පෙළ විභාග පුරුදු</Text>
       </View>
+
       <FlatList
         data={subjects}
         renderItem={renderSubject}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={s.list}
+        ListEmptyComponent={
+          <StateScreen
+            icon="file-tray-outline"
+            title="No subjects yet"
+            body="Subjects will appear here once they're added."
+          />
+        }
       />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const s = StyleSheet.create({
+  center: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
   header: {
-    padding: 20,
-    backgroundColor: '#4A90D9',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingHorizontal: space.xl,
+    paddingTop: space.xl,
+    paddingBottom: space.lg,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surfaceContainerHigh,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.onSurface,
+    ...type.headlineMedium,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#E0E0E0',
-    marginTop: 4,
+    color: colors.onSurfaceVariant,
+    marginTop: space.xs,
+    ...type.bodyMedium,
   },
+
   list: {
-    padding: 16,
+    padding: space.lg,
   },
   card: {
+    marginBottom: space.md,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: space.lg,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
+  iconWell: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
     alignItems: 'center',
-    marginRight: 16,
+    justifyContent: 'center',
+    backgroundColor: colors.primaryContainer,
+    marginRight: space.lg,
   },
-  cardContent: {
+  rowText: {
     flex: 1,
+    paddingRight: space.sm,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
+    color: colors.onSurface,
+    ...type.titleMedium,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666666',
+    color: colors.onSurfaceVariant,
     marginTop: 2,
-  },
-  error: {
-    fontSize: 16,
-    color: '#E74C3C',
-    textAlign: 'center',
-    marginTop: 50,
-  },
-  retryButton: {
-    marginTop: 20,
-    alignSelf: 'center',
-    backgroundColor: '#4A90D9',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    ...type.bodySmall,
   },
 });

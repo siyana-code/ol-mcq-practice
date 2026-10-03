@@ -1,155 +1,172 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
 
-export default function ResultScreen() {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+import { colors, type, space, radius } from '../theme';
+import type { ResultScreenProps } from '../navigation';
+import { Screen, Card, Button, SectionLabel } from '../components/ui';
+
+type Band = {
+  headline: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  accent: string;
+  onAccent: string;
+};
+
+function bandFor(percent: number): Band {
+  if (percent >= 80) {
+    return {
+      headline: 'ඉතා හොඳයි',
+      icon: 'trophy',
+      accent: colors.success,
+      onAccent: colors.onSuccess,
+    };
+  }
+  if (percent >= 60) {
+    return {
+      headline: 'හොඳයි',
+      icon: 'thumbs-up',
+      accent: colors.primary,
+      onAccent: colors.onPrimary,
+    };
+  }
+  if (percent >= 40) {
+    return {
+      headline: 'තවදුරටත් පුරුදු කරන්න',
+      icon: 'fitness',
+      accent: colors.warning,
+      onAccent: colors.onWarning,
+    };
+  }
+  return {
+    headline: 'එහා යන්න එපා',
+    icon: 'book',
+    accent: colors.error,
+    onAccent: colors.onError,
+  };
+}
+
+export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   const { score, total, topicName } = route.params;
 
-  const percentage = Math.round((score / total) * 100);
+  const percent = Math.round((score / total) * 100);
+  const band = bandFor(percent);
 
-  const getMessage = () => {
-    if (percentage >= 80) return { text: 'Excellent!', icon: 'trophy' as const, color: '#4CAF50' };
-    if (percentage >= 60) return { text: 'Good job!', icon: 'thumbs-up' as const, color: '#8BC34A' };
-    if (percentage >= 40) return { text: 'Keep practicing!', icon: 'fitness' as const, color: '#FFC107' };
-    return { text: "Don't give up!", icon: 'book' as const, color: '#E74C3C' };
-  };
-
-  const message = getMessage();
+  const stats = [
+    { icon: 'checkmark-circle', tint: colors.success, value: score, label: 'Correct' },
+    { icon: 'close-circle', tint: colors.error, value: total - score, label: 'Incorrect' },
+    { icon: 'help-circle', tint: colors.primary, value: total, label: 'Total' },
+  ] as const;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.topicName}>{topicName}</Text>
-
-        <View style={styles.scoreCircle}>
-          <Ionicons name={message.icon} size={48} color="#FFFFFF" />
-          <Text style={styles.scoreText}>{score}/{total}</Text>
-          <Text style={styles.percentageText}>{percentage}%</Text>
-        </View>
-
-        <Text style={[styles.message, { color: message.color }]}>
-          {message.text}
+    <Screen>
+      <View style={s.content}>
+        <Text style={s.topic} numberOfLines={2}>
+          {topicName}
         </Text>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-            <Text style={styles.statNumber}>{score}</Text>
-            <Text style={styles.statLabel}>Correct</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Ionicons name="close-circle" size={24} color="#E74C3C" />
-            <Text style={styles.statNumber}>{total - score}</Text>
-            <Text style={styles.statLabel}>Incorrect</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Ionicons name="help-circle" size={24} color="#4A90D9" />
-            <Text style={styles.statNumber}>{total}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </View>
+        {/* Score dial */}
+        <View style={[s.dial, { backgroundColor: band.accent }]}>
+          <Ionicons name={band.icon} size={34} color={band.onAccent} />
+          <Text style={[s.dialValue, { color: band.onAccent }]}>
+            {percent}%
+          </Text>
+          <Text style={[s.dialFraction, { color: band.onAccent }]}>
+            {score} of {total}
+          </Text>
+        </View>
+
+        <Text style={[s.band, { color: band.accent }]}>{band.headline}</Text>
+
+        <SectionLabel>Score breakdown</SectionLabel>
+
+        <View style={s.statRow}>
+          {stats.map((stat) => (
+            <Card key={stat.label} style={s.statCard}>
+              <View style={s.statInner}>
+                <Ionicons name={stat.icon} size={26} color={stat.tint} />
+                <Text style={s.statValue}>{stat.value}</Text>
+                <Text style={s.statLabel}>{stat.label}</Text>
+              </View>
+            </Card>
+          ))}
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.button}
+      <View style={s.footer}>
+        <Button
+          label="Back to home"
+          icon="home-outline"
           onPress={() => navigation.navigate('Home')}
-        >
-          <Ionicons name="home" size={20} color="#FFFFFF" />
-          <Text style={styles.buttonText}>Back to Home</Text>
-        </TouchableOpacity>
+        />
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
+const s = StyleSheet.create({
   content: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  topicName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 30,
-  },
-  scoreCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: '#4A90D9',
     justifyContent: 'center',
+    padding: space.xl,
+    gap: space.lg,
+  },
+  topic: {
+    color: colors.onSurface,
+    textAlign: 'center',
+    ...type.titleLarge,
+  },
+
+  dial: {
+    width: 168,
+    height: 168,
+    borderRadius: radius.full,
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center',
   },
-  scoreText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginTop: 8,
+  dialValue: {
+    ...type.headlineMedium,
+    marginTop: space.sm,
   },
-  percentageText: {
-    fontSize: 18,
-    color: '#E0E0E0',
+  dialFraction: {
+    ...type.bodySmall,
+    opacity: 0.85,
   },
-  message: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
+
+  band: {
+    ...type.headlineSmall,
+    textAlign: 'center',
   },
-  statsContainer: {
+
+  statRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+    gap: space.md,
+    alignSelf: 'stretch',
   },
-  statBox: {
+  statCard: {
+    flex: 1,
+    borderRadius: radius.md,
+  },
+  statInner: {
     alignItems: 'center',
+    paddingVertical: space.lg,
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginTop: 4,
+  statValue: {
+    color: colors.onSurface,
+    marginTop: space.sm,
+    ...type.headlineSmall,
   },
   statLabel: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 4,
+    color: colors.onSurfaceVariant,
+    marginTop: 2,
+    ...type.bodySmall,
   },
+
   footer: {
-    padding: 20,
-    backgroundColor: '#FFFFFF',
+    padding: space.lg,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  button: {
-    backgroundColor: '#4A90D9',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
+    borderTopColor: colors.surfaceContainerHigh,
   },
 });

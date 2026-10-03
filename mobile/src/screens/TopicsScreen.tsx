@@ -1,160 +1,136 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import apiClient from '../api/client';
-import { Subject, Topic } from '../types';
 
-export default function TopicsScreen() {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+import apiClient from '../api/client';
+import { Topic } from '../types';
+import { colors, type, space } from '../theme';
+import type { TopicsScreenProps } from '../navigation';
+import { Screen, AppBar, Card, StateScreen } from '../components/ui';
+
+export default function TopicsScreen({ navigation, route }: TopicsScreenProps) {
   const { subjectId, subjectName } = route.params;
 
-  const [subject, setSubject] = useState<Subject | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSubject();
-  }, []);
-
-  const fetchSubject = async () => {
+  const fetchTopics = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/subjects/${subjectId}`);
-      setSubject(response.data);
-      setTopics(response.data.topics || []);
+      setError(null);
+      const { data } = await apiClient.get<{ topics: Topic[] }>(`/subjects/${subjectId}`);
+      setTopics(data.topics ?? []);
     } catch (err: any) {
-      setError(err.message || 'Failed to load topics');
+      setError(err?.message ?? 'Failed to load topics');
     } finally {
       setLoading(false);
     }
-  };
+  }, [subjectId]);
+
+  useEffect(() => {
+    fetchTopics();
+  }, [fetchTopics]);
 
   const renderTopic = ({ item }: { item: Topic }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('Practice', { topicId: item.id, topicName: item.name_si })}
+    <Card
+      onPress={() =>
+        navigation.navigate('Practice', {
+          topicId: item.id,
+          topicName: item.name_si,
+        })
+      }
+      style={s.card}
     >
-      <View style={styles.cardContent}>
-        <Text style={styles.title}>{item.name_si}</Text>
-        <Text style={styles.subtitle}>{item.name_en}</Text>
+      <View style={s.row}>
+        <View style={s.rowText}>
+          <Text style={s.title} numberOfLines={1}>
+            {item.name_si}
+          </Text>
+          <Text style={s.subtitle} numberOfLines={1}>
+            {item.name_en}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.outline} />
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#4A90D9" />
-    </TouchableOpacity>
+    </Card>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#4A90D9" />
-      </SafeAreaView>
+      <Screen>
+        <AppBar title={subjectName} onBack={() => navigation.goBack()} />
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </Screen>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.error}>{error}</Text>
-        <TouchableOpacity onPress={fetchSubject} style={styles.retryButton}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <Screen>
+        <AppBar title={subjectName} onBack={() => navigation.goBack()} />
+        <StateScreen
+          icon="cloud-offline-outline"
+          title="Couldn't load topics"
+          body={error}
+          actionLabel="Try again"
+          onAction={fetchTopics}
+          tone="error"
+        />
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{subjectName}</Text>
-      </View>
+    <Screen>
+      <AppBar title={subjectName} onBack={() => navigation.goBack()} />
       <FlatList
         data={topics}
         renderItem={renderTopic}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={s.list}
+        ListEmptyComponent={
+          <StateScreen
+            icon="library-outline"
+            title="No topics yet"
+            body="Topics for this subject haven't been added."
+          />
+        }
       />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const s = StyleSheet.create({
+  center: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#4A90D9',
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    justifyContent: 'center',
   },
   list: {
-    padding: 16,
+    padding: space.lg,
   },
   card: {
+    marginBottom: space.md,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: space.lg,
   },
-  cardContent: {
+  rowText: {
     flex: 1,
+    paddingRight: space.sm,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
+    color: colors.onSurface,
+    ...type.titleMedium,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666666',
+    color: colors.onSurfaceVariant,
     marginTop: 2,
-  },
-  error: {
-    fontSize: 16,
-    color: '#E74C3C',
-    textAlign: 'center',
-    marginTop: 50,
-  },
-  retryButton: {
-    marginTop: 20,
-    alignSelf: 'center',
-    backgroundColor: '#4A90D9',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    ...type.bodySmall,
   },
 });

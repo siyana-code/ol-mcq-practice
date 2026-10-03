@@ -1,320 +1,339 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  ScrollView,
-  Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+
 import apiClient from '../api/client';
 import { Question } from '../types';
+import { colors, type, space, radius } from '../theme';
+import type { PracticeScreenProps } from '../navigation';
+import { Screen, AppBar, Card, Button, StateScreen } from '../components/ui';
 
-export default function PracticeScreen() {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+
+/** Resolves the visual state of an option row. */
+function optionState(
+  index: number,
+  correctIndex: number,
+  selected: number | null,
+  revealed: boolean,
+) {
+  if (!revealed) {
+    return {
+      background: colors.surface,
+      border: colors.outlineVariant,
+      badge: colors.surfaceContainer,
+      badgeText: colors.onSurfaceVariant,
+    };
+  }
+  if (index === correctIndex) {
+    return {
+      background: colors.correctTint,
+      border: colors.correctBorder,
+      badge: colors.correctBorder,
+      badgeText: colors.onSuccess,
+    };
+  }
+  if (index === selected) {
+    return {
+      background: colors.incorrectTint,
+      border: colors.incorrectBorder,
+      badge: colors.incorrectBorder,
+      badgeText: colors.onError,
+    };
+  }
+  return {
+    background: colors.surface,
+    border: colors.outlineVariant,
+    badge: colors.surfaceContainer,
+    badgeText: colors.onSurfaceVariant,
+  };
+}
+
+export default function PracticeScreen({ navigation, route }: PracticeScreenProps) {
   const { topicId, topicName } = route.params;
 
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [revealed, setRevealed] = useState(false);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchQuestions();
-  }, []);
-
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/questions?topic_id=${topicId}&limit=20`);
-      setQuestions(response.data);
+      setError(null);
+      const { data } = await apiClient.get<Question[]>(
+        '/questions',
+        { params: { topic_id: topicId, limit: 20 } },
+      );
+      setQuestions(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to load questions');
+      setError(err?.message ?? 'Failed to load questions');
     } finally {
       setLoading(false);
     }
-  };
+  }, [topicId]);
 
-  const handleAnswer = (index: number) => {
-    if (showExplanation) return;
-    setSelectedAnswer(index);
-    setShowExplanation(true);
-    if (index === questions[currentIndex].correct_answer) {
-      setScore(score + 1);
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
+
+  const choose = (optionIndex: number) => {
+    if (revealed) return;
+    setSelected(optionIndex);
+    setRevealed(true);
+    if (optionIndex === questions[index].correct_answer) {
+      setScore((n) => n + 1);
     }
   };
 
-  const handleNext = () => {
-    if (currentIndex + 1 >= questions.length) {
+  const advance = () => {
+    if (index + 1 >= questions.length) {
       navigation.navigate('Result', {
-        score,
+        // `score` is read after this state update commits, so compute it here.
+        score: score + (selected === questions[index].correct_answer ? 1 : 0),
         total: questions.length,
         topicName,
       });
-    } else {
-      setCurrentIndex(currentIndex + 1);
-      setSelectedAnswer(null);
-      setShowExplanation(false);
+      return;
     }
-  };
-
-  const getOptionStyle = (index: number) => {
-    if (!showExplanation) {
-      return selectedAnswer === index ? styles.optionSelected : styles.option;
-    }
-    if (index === questions[currentIndex].correct_answer) {
-      return styles.optionCorrect;
-    }
-    if (selectedAnswer === index && index !== questions[currentIndex].correct_answer) {
-      return styles.optionWrong;
-    }
-    return styles.option;
+    setIndex((n) => n + 1);
+    setSelected(null);
+    setRevealed(false);
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#4A90D9" />
-      </SafeAreaView>
+      <Screen>
+        <AppBar title={topicName} onBack={() => navigation.goBack()} />
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </Screen>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.error}>{error}</Text>
-        <TouchableOpacity onPress={fetchQuestions} style={styles.retryButton}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <Screen>
+        <AppBar title={topicName} onBack={() => navigation.goBack()} />
+        <StateScreen
+          icon="cloud-offline-outline"
+          title="Couldn't load questions"
+          body={error}
+          actionLabel="Try again"
+          onAction={fetchQuestions}
+          tone="error"
+        />
+      </Screen>
     );
   }
 
   if (questions.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.emptyText}>No questions available for this topic yet.</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.retryButton}>
-          <Text style={styles.retryText}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <Screen>
+        <AppBar title={topicName} onBack={() => navigation.goBack()} />
+        <StateScreen
+          icon="document-text-outline"
+          title="No questions yet"
+          body="This topic doesn't have any questions available right now."
+          actionLabel="Go back"
+          onAction={() => navigation.goBack()}
+        />
+      </Screen>
     );
   }
 
-  const currentQuestion = questions[currentIndex];
+  const q = questions[index];
+  const isCorrect = selected === q.correct_answer;
+  const isLast = index + 1 >= questions.length;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{topicName}</Text>
-        <Text style={styles.progress}>
-          {currentIndex + 1}/{questions.length}
-        </Text>
+    <Screen>
+      <AppBar
+        title={topicName}
+        onBack={() => navigation.goBack()}
+        trailing={
+          <Text style={s.counter}>
+            {index + 1}/{questions.length}
+          </Text>
+        }
+      />
+
+      {/* Progress rail */}
+      <View style={s.railTrack}>
+        <View
+          style={[
+            s.railFill,
+            { width: `${((index + 1) / questions.length) * 100}%` },
+          ]}
+        />
       </View>
 
-      <ScrollView style={styles.content}>
-        <Text style={styles.questionText}>{currentQuestion.question_text_si}</Text>
+      <ScrollView contentContainerStyle={s.content}>
+        <Card style={s.questionCard}>
+          <Text style={s.question}>{q.question_text_si}</Text>
+        </Card>
 
-        <View style={styles.optionsContainer}>
-          {currentQuestion.options.map((option, index) => (
-            <TouchableOpacity
-              key={index}
-              style={getOptionStyle(index)}
-              onPress={() => handleAnswer(index)}
-              disabled={showExplanation}
-            >
-              <Text style={styles.optionText}>
-                {String.fromCharCode(65 + index)}. {option.text_si}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={s.options}>
+          {q.options.map((option, i) => {
+            const st = optionState(i, q.correct_answer, selected, revealed);
+            return (
+              <Card
+                key={i}
+                onPress={() => choose(i)}
+                background={st.background}
+                borderColor={st.border}
+                borderWidth={revealed && (i === q.correct_answer || i === selected) ? 2 : 1}
+                style={s.optionCard}
+              >
+                <View style={s.optionRow}>
+                  <View style={[s.badge, { backgroundColor: st.badge }]}>
+                    <Text style={[s.badgeText, { color: st.badgeText }]}>
+                      {LETTERS[i]}
+                    </Text>
+                  </View>
+                  <Text style={s.optionText}>{option.text_si}</Text>
+                  {revealed && i === q.correct_answer ? (
+                    <Ionicons name="checkmark-circle" size={22} color={colors.correctBorder} />
+                  ) : null}
+                  {revealed && i === selected && i !== q.correct_answer ? (
+                    <Ionicons name="close-circle" size={22} color={colors.incorrectBorder} />
+                  ) : null}
+                </View>
+              </Card>
+            );
+          })}
         </View>
 
-        {showExplanation && (
-          <View style={styles.explanationContainer}>
-            <View style={styles.explanationHeader}>
+        {revealed ? (
+          <Card
+            background={isCorrect ? colors.correctTint : colors.warningContainer}
+            borderColor={isCorrect ? colors.correctBorder : colors.warning}
+            style={s.feedbackCard}
+          >
+            <View style={s.feedbackHeader}>
               <Ionicons
-                name={selectedAnswer === currentQuestion.correct_answer ? 'checkmark-circle' : 'close-circle'}
-                size={24}
-                color={selectedAnswer === currentQuestion.correct_answer ? '#4CAF50' : '#E74C3C'}
+                name={isCorrect ? 'checkmark-circle' : 'close-circle'}
+                size={22}
+                color={isCorrect ? colors.correctBorder : colors.error}
               />
-              <Text style={styles.explanationTitle}>
-                {selectedAnswer === currentQuestion.correct_answer ? 'Correct!' : 'Incorrect'}
+              <Text style={s.feedbackTitle}>
+                {isCorrect ? 'නිවැරදියි' : 'වැරදියි'}
               </Text>
+              {!isCorrect ? (
+                <Text style={s.correctHint}>
+                  නිවැරදි පිළිතුර: {LETTERS[q.correct_answer]}
+                </Text>
+              ) : null}
             </View>
-            {currentQuestion.explanation_si && (
-              <Text style={styles.explanationText}>{currentQuestion.explanation_si}</Text>
-            )}
-          </View>
-        )}
+            {q.explanation_si ? <Text style={s.feedbackBody}>{q.explanation_si}</Text> : null}
+          </Card>
+        ) : null}
       </ScrollView>
 
-      {showExplanation && (
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-            <Text style={styles.nextButtonText}>
-              {currentIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
-            </Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+      {revealed ? (
+        <View style={s.footer}>
+          <Button
+            label={isLast ? 'See results' : 'Next question'}
+            onPress={advance}
+            icon={isLast ? 'trophy-outline' : 'arrow-forward'}
+          />
         </View>
-      )}
-    </SafeAreaView>
+      ) : null}
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
+const s = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  counter: {
+    color: colors.onSurfaceVariant,
+    ...type.bodyMedium,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#4A90D9',
+
+  railTrack: {
+    height: 4,
+    backgroundColor: colors.surfaceContainer,
   },
-  backButton: {
-    marginRight: 12,
+  railFill: {
+    height: 4,
+    backgroundColor: colors.primary,
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  progress: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
+
   content: {
-    flex: 1,
-    padding: 20,
+    padding: space.lg,
+    paddingBottom: space.xxl,
   },
-  questionText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 24,
-    lineHeight: 26,
+
+  questionCard: {
+    padding: space.lg,
+    marginBottom: space.xl,
   },
-  optionsContainer: {
-    marginBottom: 20,
+  question: {
+    color: colors.onSurface,
+    ...type.titleMedium,
+    fontWeight: '500',
   },
-  option: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
+
+  options: {
+    gap: space.md,
   },
-  optionSelected: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#4A90D9',
+  optionCard: {
+    borderRadius: radius.md,
   },
-  optionCorrect: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-  },
-  optionWrong: {
-    backgroundColor: '#FFEBEE',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#E74C3C',
-  },
-  optionText: {
-    fontSize: 16,
-    color: '#333333',
-  },
-  explanationContainer: {
-    backgroundColor: '#FFF8E1',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFC107',
-  },
-  explanationHeader: {
+  optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    padding: space.lg,
+    gap: space.md,
   },
-  explanationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  explanationText: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-  },
-  footer: {
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  nextButton: {
-    backgroundColor: '#4A90D9',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
+  badge: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nextButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 8,
+  badgeText: {
+    ...type.labelLarge,
   },
-  error: {
-    fontSize: 16,
-    color: '#E74C3C',
-    textAlign: 'center',
-    marginTop: 50,
+  optionText: {
+    flex: 1,
+    color: colors.onSurface,
+    ...type.bodyLarge,
   },
-  retryButton: {
-    marginTop: 20,
-    alignSelf: 'center',
-    backgroundColor: '#4A90D9',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+
+  feedbackCard: {
+    padding: space.lg,
+    marginTop: space.xl,
   },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  feedbackHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: space.sm,
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 50,
+  feedbackTitle: {
+    color: colors.onSurface,
+    ...type.titleSmall,
+  },
+  correctHint: {
+    color: colors.onSurfaceVariant,
+    ...type.bodySmall,
+  },
+  feedbackBody: {
+    color: colors.onSurfaceVariant,
+    marginTop: space.md,
+    ...type.bodyMedium,
+  },
+
+  footer: {
+    padding: space.lg,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.surfaceContainerHigh,
   },
 });
