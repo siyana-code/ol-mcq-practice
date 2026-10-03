@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import apiClient from '../api/client';
 import { Subject, Topic } from '../types';
@@ -48,7 +49,7 @@ export default function TopicsScreen() {
         <Text style={styles.title}>{item.name_si}</Text>
         <Text style={styles.subtitle}>{item.name_en}</Text>
       </View>
-      <Text style={styles.arrow}>›</Text>
+      <Ionicons name="chevron-forward" size={20} color="#4A90D9" />
     </TouchableOpacity>
   );
 
@@ -75,7 +76,7 @@ export default function TopicsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>←</Text>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{subjectName}</Text>
       </View>
@@ -102,10 +103,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 12,
-  },
-  backText: {
-    fontSize: 24,
-    color: '#FFFFFF',
   },
   headerTitle: {
     fontSize: 20,
@@ -140,10 +137,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     marginTop: 2,
-  },
-  arrow: {
-    fontSize: 24,
-    color: '#4A90D9',
   },
   error: {
     fontSize: 16,

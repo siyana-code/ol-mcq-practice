@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import apiClient from '../api/client';
 import { Question } from '../types';
@@ -114,7 +115,7 @@ export default function PracticeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>←</Text>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{topicName}</Text>
         <Text style={styles.progress}>
@@ -142,9 +143,16 @@ export default function PracticeScreen() {
 
         {showExplanation && (
           <View style={styles.explanationContainer}>
-            <Text style={styles.explanationTitle}>
-              {selectedAnswer === currentQuestion.correct_answer ? '✓ Correct!' : '✗ Incorrect'}
-            </Text>
+            <View style={styles.explanationHeader}>
+              <Ionicons
+                name={selectedAnswer === currentQuestion.correct_answer ? 'checkmark-circle' : 'close-circle'}
+                size={24}
+                color={selectedAnswer === currentQuestion.correct_answer ? '#4CAF50' : '#E74C3C'}
+              />
+              <Text style={styles.explanationTitle}>
+                {selectedAnswer === currentQuestion.correct_answer ? 'Correct!' : 'Incorrect'}
+              </Text>
+            </View>
             {currentQuestion.explanation_si && (
               <Text style={styles.explanationText}>{currentQuestion.explanation_si}</Text>
             )}
@@ -158,6 +166,7 @@ export default function PracticeScreen() {
             <Text style={styles.nextButtonText}>
               {currentIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
             </Text>
+            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       )}
@@ -178,10 +187,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 12,
-  },
-  backText: {
-    fontSize: 24,
-    color: '#FFFFFF',
   },
   headerTitle: {
     flex: 1,
@@ -252,10 +257,15 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#FFC107',
   },
+  explanationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   explanationTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginLeft: 8,
   },
   explanationText: {
     fontSize: 14,
@@ -272,12 +282,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A90D9',
     borderRadius: 12,
     padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   nextButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    marginRight: 8,
   },
   error: {
     fontSize: 16,

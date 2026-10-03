@@ -8,14 +8,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import apiClient from '../api/client';
 import { Subject } from '../types';
 
-const ICONS: Record<string, string> = {
-  calculator: '🧮',
-  flask: '🔬',
-  book: '📖',
+const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  calculator: 'calculator',
+  flask: 'flask',
+  book: 'book',
 };
 
 export default function HomeScreen() {
@@ -45,11 +46,14 @@ export default function HomeScreen() {
       style={styles.card}
       onPress={() => navigation.navigate('Topics', { subjectId: item.id, subjectName: item.name_si })}
     >
-      <Text style={styles.icon}>{ICONS[item.icon] || '📚'}</Text>
+      <View style={styles.iconContainer}>
+        <Ionicons name={ICONS[item.icon] || 'book'} size={28} color="#4A90D9" />
+      </View>
       <View style={styles.cardContent}>
         <Text style={styles.title}>{item.name_si}</Text>
         <Text style={styles.subtitle}>{item.name_en}</Text>
       </View>
+      <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
     </TouchableOpacity>
   );
 
@@ -125,8 +129,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  icon: {
-    fontSize: 32,
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
   },
   cardContent: {

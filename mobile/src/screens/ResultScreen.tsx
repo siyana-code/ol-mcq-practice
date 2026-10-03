@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 export default function ResultScreen() {
@@ -16,10 +17,10 @@ export default function ResultScreen() {
   const percentage = Math.round((score / total) * 100);
 
   const getMessage = () => {
-    if (percentage >= 80) return { text: 'Excellent! 🎉', color: '#4CAF50' };
-    if (percentage >= 60) return { text: 'Good job! 👍', color: '#8BC34A' };
-    if (percentage >= 40) return { text: 'Keep practicing! 💪', color: '#FFC107' };
-    return { text: 'Don\'t give up! 📚', color: '#E74C3C' };
+    if (percentage >= 80) return { text: 'Excellent!', icon: 'trophy' as const, color: '#4CAF50' };
+    if (percentage >= 60) return { text: 'Good job!', icon: 'thumbs-up' as const, color: '#8BC34A' };
+    if (percentage >= 40) return { text: 'Keep practicing!', icon: 'fitness' as const, color: '#FFC107' };
+    return { text: "Don't give up!", icon: 'book' as const, color: '#E74C3C' };
   };
 
   const message = getMessage();
@@ -30,6 +31,7 @@ export default function ResultScreen() {
         <Text style={styles.topicName}>{topicName}</Text>
 
         <View style={styles.scoreCircle}>
+          <Ionicons name={message.icon} size={48} color="#FFFFFF" />
           <Text style={styles.scoreText}>{score}/{total}</Text>
           <Text style={styles.percentageText}>{percentage}%</Text>
         </View>
@@ -40,14 +42,17 @@ export default function ResultScreen() {
 
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
+            <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
             <Text style={styles.statNumber}>{score}</Text>
             <Text style={styles.statLabel}>Correct</Text>
           </View>
           <View style={styles.statBox}>
+            <Ionicons name="close-circle" size={24} color="#E74C3C" />
             <Text style={styles.statNumber}>{total - score}</Text>
             <Text style={styles.statLabel}>Incorrect</Text>
           </View>
           <View style={styles.statBox}>
+            <Ionicons name="help-circle" size={24} color="#4A90D9" />
             <Text style={styles.statNumber}>{total}</Text>
             <Text style={styles.statLabel}>Total</Text>
           </View>
@@ -59,6 +64,7 @@ export default function ResultScreen() {
           style={styles.button}
           onPress={() => navigation.navigate('Home')}
         >
+          <Ionicons name="home" size={20} color="#FFFFFF" />
           <Text style={styles.buttonText}>Back to Home</Text>
         </TouchableOpacity>
       </View>
@@ -96,6 +102,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: '#FFFFFF',
+    marginTop: 8,
   },
   percentageText: {
     fontSize: 18,
@@ -118,6 +125,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333333',
+    marginTop: 4,
   },
   statLabel: {
     fontSize: 14,
@@ -134,11 +142,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A90D9',
     borderRadius: 12,
     padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
