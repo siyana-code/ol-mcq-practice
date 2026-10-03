@@ -11,6 +11,8 @@ export interface Topic {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  /** Present on topic endpoints. */
+  question_count?: number;
 }
 
 export interface Subject {
@@ -21,8 +23,10 @@ export interface Subject {
   sort_order: number;
   category: SubjectCategory;
   is_mcq: boolean;
-  /** Only present on /api/profile/my-subjects. */
+  /** Present on /api/subjects/:id and /api/profile/my-subjects. */
   topics?: Topic[];
+  /** Rollup across the subject's topics, on /api/profile/my-subjects. */
+  question_count?: number;
   /** Only present on the user's chosen basket subjects. */
   basket?: number;
 }
