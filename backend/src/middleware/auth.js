@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const config = require('../config');
 
 function authRequired(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
@@ -8,7 +9,7 @@ function authRequired(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     req.user = decoded;
     next();
   } catch (err) {
@@ -21,7 +22,7 @@ function authOptional(req, res, next) {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, config.jwt.secret);
       req.user = decoded;
     } catch (err) {
       // Token invalid, but continue as anonymous
