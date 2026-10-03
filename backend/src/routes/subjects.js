@@ -3,7 +3,22 @@ const db = require('../db');
 
 const router = express.Router();
 
-// GET /api/subjects - List all subjects
+/**
+ * @swagger
+ * /api/subjects:
+ *   get:
+ *     summary: List all subjects
+ *     tags: [Subjects]
+ *     responses:
+ *       200:
+ *         description: List of subjects
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Subject'
+ */
 router.get('/', async (req, res) => {
   try {
     const subjects = await db('subjects').orderBy('sort_order', 'asc');
@@ -13,7 +28,25 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/subjects/:id - Get subject with topics
+/**
+ * @swagger
+ * /api/subjects/{id}:
+ *   get:
+ *     summary: Get subject with topics
+ *     tags: [Subjects]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Subject with topics
+ *       404:
+ *         description: Subject not found
+ */
 router.get('/:id', async (req, res) => {
   try {
     const subject = await db('subjects').where({ id: req.params.id }).first();
@@ -28,7 +61,28 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/subjects - Create subject (admin)
+/**
+ * @swagger
+ * /api/subjects:
+ *   post:
+ *     summary: Create a new subject (Admin)
+ *     tags: [Subjects]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name_si, name_en]
+ *             properties:
+ *               name_si: { type: 'string' }
+ *               name_en: { type: 'string' }
+ *               icon: { type: 'string' }
+ *               sort_order: { type: 'integer' }
+ *     responses:
+ *       201:
+ *         description: Subject created
+ */
 router.post('/', async (req, res) => {
   try {
     const { name_si, name_en, icon, sort_order } = req.body;
@@ -39,7 +93,33 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/subjects/:id - Update subject (admin)
+/**
+ * @swagger
+ * /api/subjects/{id}:
+ *   put:
+ *     summary: Update a subject (Admin)
+ *     tags: [Subjects]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: 'string', format: 'uuid' }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name_si: { type: 'string' }
+ *               name_en: { type: 'string' }
+ *               icon: { type: 'string' }
+ *               sort_order: { type: 'integer' }
+ *     responses:
+ *       200:
+ *         description: Subject updated
+ *       404:
+ *         description: Subject not found
+ */
 router.put('/:id', async (req, res) => {
   try {
     const { name_si, name_en, icon, sort_order } = req.body;
@@ -53,7 +133,23 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/subjects/:id - Delete subject (admin)
+/**
+ * @swagger
+ * /api/subjects/{id}:
+ *   delete:
+ *     summary: Delete a subject (Admin)
+ *     tags: [Subjects]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: 'string', format: 'uuid' }
+ *     responses:
+ *       204:
+ *         description: Subject deleted
+ *       404:
+ *         description: Subject not found
+ */
 router.delete('/:id', async (req, res) => {
   try {
     const deleted = await db('subjects').where({ id: req.params.id }).del();

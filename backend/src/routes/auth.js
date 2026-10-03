@@ -5,7 +5,29 @@ const db = require('../db');
 
 const router = express.Router();
 
-// POST /api/auth/register
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, name, password]
+ *             properties:
+ *               email: { type: 'string', format: 'email' }
+ *               name: { type: 'string' }
+ *               password: { type: 'string', minLength: 6 }
+ *     responses:
+ *       201:
+ *         description: User registered
+ *       409:
+ *         description: Email already registered
+ */
 router.post('/register', async (req, res) => {
   try {
     const { email, name, password } = req.body;
@@ -26,7 +48,28 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// POST /api/auth/login
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email: { type: 'string', format: 'email' }
+ *               password: { type: 'string' }
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ */
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -49,7 +92,20 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET /api/auth/me
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user info
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;

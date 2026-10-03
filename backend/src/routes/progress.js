@@ -4,7 +4,18 @@ const { authRequired } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/progress - Get user progress stats
+/**
+ * @swagger
+ * /api/progress:
+ *   get:
+ *     summary: Get user progress stats
+ *     tags: [Progress]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User progress stats
+ */
 router.get('/', authRequired, async (req, res) => {
   try {
     const stats = await db('user_stats').where({ user_id: req.user.id });
@@ -14,7 +25,30 @@ router.get('/', authRequired, async (req, res) => {
   }
 });
 
-// POST /api/progress - Record answer
+/**
+ * @swagger
+ * /api/progress:
+ *   post:
+ *     summary: Record an answer
+ *     tags: [Progress]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [question_id, selected_answer, is_correct]
+ *             properties:
+ *               question_id: { type: 'string', format: 'uuid' }
+ *               selected_answer: { type: 'integer' }
+ *               is_correct: { type: 'boolean' }
+ *               time_taken: { type: 'integer' }
+ *     responses:
+ *       201:
+ *         description: Progress recorded
+ */
 router.post('/', authRequired, async (req, res) => {
   try {
     const { question_id, selected_answer, is_correct, time_taken } = req.body;
@@ -27,7 +61,6 @@ router.post('/', authRequired, async (req, res) => {
       time_taken
     }).returning('*');
 
-    // Update user stats
     const question = await db('questions').where({ id: question_id }).first();
     if (question) {
       const topic = await db('topics').where({ id: question.topic_id }).first();
@@ -55,7 +88,25 @@ router.post('/', authRequired, async (req, res) => {
   }
 });
 
-// GET /api/progress/history - Get answer history
+/**
+ * @swagger
+ * /api/progress/history:
+ *   get:
+ *     summary: Get answer history
+ *     tags: [Progress]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: 'integer', default: 50 }
+ *       - in: query
+ *         name: offset
+ *         schema: { type: 'integer', default: 0 }
+ *     responses:
+ *       200:
+ *         description: Answer history
+ */
 router.get('/history', authRequired, async (req, res) => {
   try {
     const { limit = 50, offset = 0 } = req.query;
