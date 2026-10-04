@@ -3,6 +3,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const config = require('../config');
+const {
+  validate,
+  register: registerSchema,
+  login: loginSchema,
+} = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -49,19 +54,9 @@ const signToken = (user) =>
  *       400:
  *         description: Invalid mother_language or religion
  */
-router.post('/register', async (req, res) => {
+router.post('/register', validate(registerSchema), async (req, res) => {
   try {
     const { email, name, password, mother_language, religion } = req.body;
-
-    if (password && String(password).length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-    if (mother_language && !MOTHER_LANGUAGES.includes(mother_language)) {
-      return res.status(400).json({ error: 'Invalid mother_language' });
-    }
-    if (religion && !RELIGIONS.includes(religion)) {
-      return res.status(400).json({ error: 'Invalid religion' });
-    }
 
     const existing = await db('users').where({ email }).first();
     if (existing) {
@@ -101,7 +96,7 @@ router.post('/register', async (req, res) => {
  *       200: { description: Logged in }
  *       401: { description: Invalid credentials }
  */
-router.post('/login', async (req, res) => {
+router.post('/login', validate(loginSchema), async (req, res) => {
   try {
     const { email, password } = req.body;
 
