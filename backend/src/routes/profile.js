@@ -1,11 +1,10 @@
 const express = require('express');
 const db = require('../db');
 const { authRequired } = require('../middleware/auth');
+const { validate, updateProfile, basketPicks } = require('../middleware/validate');
 
 const router = express.Router();
 
-const MOTHER_LANGUAGES = ['sinhala', 'tamil'];
-const RELIGIONS = ['buddhism', 'christianity', 'islam', 'shaivism'];
 const BASKETS = [1, 2, 3];
 
 /**
@@ -94,16 +93,9 @@ router.get('/', authRequired, async (req, res) => {
  *       200: { description: Updated }
  *       400: { description: Invalid value }
  */
-router.patch('/', authRequired, async (req, res) => {
+router.patch('/', authRequired, validate(updateProfile), async (req, res) => {
   try {
     const { name, mother_language, religion } = req.body;
-
-    if (mother_language && !MOTHER_LANGUAGES.includes(mother_language)) {
-      return res.status(400).json({ error: 'Invalid mother_language' });
-    }
-    if (religion && !RELIGIONS.includes(religion)) {
-      return res.status(400).json({ error: 'Invalid religion' });
-    }
 
     const patch = { updated_at: new Date() };
     if (name) patch.name = name;
@@ -146,7 +138,7 @@ router.patch('/', authRequired, async (req, res) => {
  *       200: { description: Selections saved }
  *       400: { description: Missing basket, bad category, or duplicate subject }
  */
-router.put('/subjects', authRequired, async (req, res) => {
+router.put('/subjects', authRequired, validate(basketPicks), async (req, res) => {
   try {
     const { basket1, basket2, basket3 } = req.body || {};
     const incoming = { 1: basket1, 2: basket2, 3: basket3 };

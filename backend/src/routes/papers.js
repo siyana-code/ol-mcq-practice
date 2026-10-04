@@ -4,6 +4,10 @@ const db = require('../db');
 const router = express.Router();
 
 /**
+ * Public, read-only past paper metadata. Paper writes live in /api/admin.
+ */
+
+/**
  * @swagger
  * /api/papers:
  *   get:
@@ -12,30 +16,25 @@ const router = express.Router();
  *     parameters:
  *       - in: query
  *         name: subject_id
- *         schema: { type: 'string', format: 'uuid' }
+ *         schema: { type: string, format: uuid }
  *       - in: query
  *         name: year
- *         schema: { type: 'integer' }
+ *         schema: { type: integer }
  *     responses:
  *       200:
  *         description: List of past papers
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PastPaper'
  */
 router.get('/', async (req, res) => {
   try {
     const { subject_id, year } = req.query;
 
     let query = db('past_papers').select('*');
-
     if (subject_id) query = query.where('subject_id', subject_id);
     if (year) query = query.where('year', year);
 
     const papers = await query.orderBy('year', 'desc');
+
+    res.set('Cache-Control', 'public, max-age=300');
     res.json(papers);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -46,62 +45,30 @@ router.get('/', async (req, res) => {
  * @swagger
  * /api/papers/{id}:
  *   get:
- *     summary: Get paper with questions
+ *     summary: Get paper metadata
+ *     description: >
+ *       Question counts only. Question text is served through
+ *       /api/practice so the answer key is never delivered here.
  *     tags: [Papers]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: 'string', format: 'uuid' }
+ *         schema: { type: string, format: uuid }
  *     responses:
- *       200:
- *         description: Paper with questions
- *       404:
- *         description: Paper not found
+ *       200: { description: Paper details }
+ *       404: { description: Paper not found }
  */
 router.get('/:id', async (req, res) => {
   try {
     const paper = await db('past_papers').where({ id: req.params.id }).first();
-    if (!paper) {
-      return res.status(404).json({ error: 'Paper not found' });
-    }
+    if (!paper) return res.status(404).json({ error: 'Paper not found' });
 
-    const questions = await db('questions').where({ paper_id: req.params.id });
-    res.json({ ...paper, questions });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    const [[{ count }]] = await db('questions')
+      .where({ paper_id: req.params.id })
+      .count({ count: 'id' });
 
-/**
- * @swagger
- * /api/papers:
- *   post:
- *     summary: Create a past paper (Admin)
- *     tags: [Papers]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [subject_id, year]
- *             properties:
- *               subject_id: { type: 'string', format: 'uuid' }
- *               year: { type: 'integer' }
- *               paper_number: { type: 'integer' }
- *               title_si: { type: 'string' }
- *               title_en: { type: 'string' }
- *               pdf_url: { type: 'string' }
- *     responses:
- *       201:
- *         description: Paper created
- */
-router.post('/', async (req, res) => {
-  try {
-    const { subject_id, year, paper_number, title_si, title_en, pdf_url } = req.body;
-    const [paper] = await db('past_papers').insert({ subject_id, year, paper_number, title_si, title_en, pdf_url }).returning('*');
-    res.status(201).json(paper);
+    res.json({ ...paper, question_count: Number(count) || 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -48,9 +48,12 @@ export default function TopicsScreen({ navigation, route }: TopicsScreenProps) {
         onPress={
           ready
             ? () =>
-                navigation.navigate('Practice', {
+                navigation.navigate('PracticeSetup', {
+                  subjectId,
+                  subjectName: subject?.name_si ?? subjectName,
                   topicId: item.id,
                   topicName: item.name_si,
+                  questionCount: count,
                 })
             : undefined
         }

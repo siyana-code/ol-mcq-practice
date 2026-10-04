@@ -15,6 +15,7 @@ import AuthScreen from './src/screens/AuthScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import TopicsScreen from './src/screens/TopicsScreen';
 import PracticeScreen from './src/screens/PracticeScreen';
+import PracticeSetupScreen from './src/screens/PracticeSetupScreen';
 import ResultScreen from './src/screens/ResultScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
@@ -77,6 +78,7 @@ function Root() {
           initialParams={{ blocking: needsSetup }}
         />
         <Stack.Screen name="Topics" component={TopicsScreen} />
+        <Stack.Screen name="PracticeSetup" component={PracticeSetupScreen} />
         <Stack.Screen name="Practice" component={PracticeScreen} />
         <Stack.Screen name="Result" component={ResultScreen} />
       </Stack.Navigator>
