@@ -2,13 +2,16 @@
  * Full Sri Lankan O/L subject catalogue.
  *
  * Structure: 6 mandatory + 3 optional baskets (one pick each).
- * is_mcq = false  ->  no drillable MCQ Paper I (practical or essay based).
+ * is_mcq = false  ->  no drillable MCQ Paper I (practical, essay, or
+ *                     subject-specific reason). Still listed for the student,
+ *                     just not drillable.
  *
- * Mathematics is retained but flagged is_mcq=false per product decision.
+ * Mathematics and English Language are retained but flagged is_mcq=false per
+ * product decision. Flip back to true if that changes - no schema change.
  */
 const MANDATORY = [
   { name_si: 'සිංහල භාෂාව', name_en: 'Sinhala Language', icon: 'text', sort_order: 1, is_mcq: true },
-  { name_si: 'ඉංග්‍රීසි භාෂාව', name_en: 'English Language', icon: 'language', sort_order: 2, is_mcq: true },
+  { name_si: 'ඉංග්‍රීසි භාෂාව', name_en: 'English Language', icon: 'language', sort_order: 2, is_mcq: false },
   { name_si: 'විද්‍යාව', name_en: 'Science', icon: 'flask', sort_order: 3, is_mcq: true },
   { name_si: 'ඉතිහාසය', name_en: 'History', icon: 'time', sort_order: 4, is_mcq: true },
   { name_si: 'ධර්මය', name_en: 'Religion', icon: 'flower', sort_order: 5, is_mcq: true },
